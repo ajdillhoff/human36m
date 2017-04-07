@@ -7,6 +7,7 @@ import torch.optim as optim
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils import video_transforms
 from torchvision import transforms
 from torch.autograd import Variable
 
@@ -36,8 +37,11 @@ def main():
     m.cuda()
 
     print("Loading data...")
-    a = human36m.HUMAN36M(args.data, transform=transforms.Compose([
-            transforms.ToTensor()
+    a = human36m.HUMAN36M(args.data, transform=video_transforms.Compose([
+            video_transforms.RandomHorizontalFlip(),
+            video_transforms.ToTensor(),
+            video_transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                std=[0.1, 0.1, 0.1])
         ]))
 
     train_loader = torch.utils.data.DataLoader(a, batch_size=args.batch_size,

@@ -23,9 +23,9 @@ class HUMAN36M(data.Dataset):
             for fentry in self.train_list:
                 path = os.path.join(root, fentry)
                 f = h5py.File(path, 'r')
-                self.train_data = f['.']['data'].value
-                self.train_labels = f['.']['labels'].value
-                f.close()
+                self.train_data = f['.']['data']
+                self.train_labels = f['.']['labels']
+                # f.close()
 
             self.num_frames = self.train_data.shape[1]
             self.img_height = self.train_data.shape[2]
@@ -37,17 +37,18 @@ class HUMAN36M(data.Dataset):
             seq, target = self.train_data[index], self.train_labels[index]
 
         if self.transform is not None:
+            seq = self.transform(seq)
             # The sequence should be (num_frames, channels, H, W)
-            sample = torch.Tensor(self.num_frames, self.channels,
-                    self.img_height, self.img_width)
-            for seq_index in range(seq.shape[0]):
-                img = Image.fromarray(seq[seq_index].astype(np.uint8))
-                img = self.transform(img)
-                sample[seq_index] = img
+            # sample = torch.Tensor(self.num_frames, self.channels,
+            #         self.img_height, self.img_width)
+            # for seq_index in range(seq.shape[0]):
+            #     img = Image.fromarray(seq[seq_index].astype(np.uint8))
+            #     img = self.transform(img)
+            #     sample[seq_index] = img
 
             # For 3DCNN, we need a volume that is (C, D, H, W)
-            sample = np.transpose(sample.numpy(), (1, 0, 2, 3))
-            seq = torch.Tensor(sample)
+            seq = np.transpose(seq.numpy(), (1, 0, 2, 3))
+            seq = torch.Tensor(seq)
 
         if self.target_transform is not None:
             target = self.target_transform(target)
