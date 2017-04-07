@@ -1,3 +1,5 @@
+import os
+
 from PIL import Image
 import numpy as np
 import torch
@@ -6,9 +8,7 @@ from torchvision import transforms
 import h5py
 
 class HUMAN36M(data.Dataset):
-    # TODO: Take away the hardcoded path
-    path = "/media/adillhoff/Data Set 01/human3.6m/human36m.hdf5"
-    train_list = [path]
+    train_list = ["human36m.hdf5"]
 
     def __init__(self, root, train=True,
             transform=None, target_transform=None):
@@ -21,7 +21,8 @@ class HUMAN36M(data.Dataset):
             self.train_data = []
             self.train_labels = []
             for fentry in self.train_list:
-                f = h5py.File(fentry, 'r')
+                path = os.path.join(root, fentry)
+                f = h5py.File(path, 'r')
                 self.train_data = f['.']['data'].value
                 self.train_labels = f['.']['labels'].value
                 f.close()
