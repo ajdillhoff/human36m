@@ -6,9 +6,9 @@ from torch.autograd import Variable
 
 N = 10
 C_in = 3
-D_in = 40
-H = 224
-W = 224
+D_in = 16
+H = 128
+W = 128
 num_classes = 10
 
 if __name__ == "__main__":

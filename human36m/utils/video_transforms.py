@@ -2,6 +2,7 @@ import torch
 import random
 from PIL import Image
 import numpy as np
+import numbers
 
 class Compose(object):
     """Composes several transforms together.
@@ -66,3 +67,38 @@ class RandomHorizontalFlip(object):
                 seq[i] = np.array(img)
             return seq
         return seq
+
+class RandomCrop(object):
+    """Crops the given video sequence at a random location to have a region of
+    the given size. The temporal dimension is also cropped. Assumes an input
+    sequence of shape (N x H x W x C).
+    """
+
+    def __init__(self, size):
+        if isinstance(size, numbers.Number):
+            self.size(int(size), int(size), int(size))
+        else:
+            self.size = size
+
+    def __call__(self, seq):
+        h = seq.shape[1]
+        w = seq.shape[2]
+        n = seq.shape[0]
+        tn, th, tw = self.size
+
+        if h == th and w == tw and n == tn:
+            return seq
+
+        x1 = random.randint(0, w - tw)
+        y1 = random.randint(0, h - th)
+        n1 = random.randint(0, n - tn)
+
+        new_seq = np.zeros((tn, th, tw, seq.shape[3]))
+        new_seq_idx = 0
+
+        for i in range(n1, n1 + tn):
+            img = Image.fromarray(seq[i].astype(np.uint8))
+            img = img.crop((x1, y1, x1 + tw, y1 + th))
+            new_seq[new_seq_idx] = np.array(img)
+
+        return new_seq

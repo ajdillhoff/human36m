@@ -39,6 +39,7 @@ def main():
     print("Loading data...")
     a = human36m.HUMAN36M(args.data, transform=video_transforms.Compose([
             video_transforms.RandomHorizontalFlip(),
+            video_transforms.RandomCrop([16, 128, 128]),
             video_transforms.ToTensor(),
             video_transforms.Normalize(mean=[0.5, 0.5, 0.5],
                 std=[0.1, 0.1, 0.1])
