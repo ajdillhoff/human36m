@@ -45,7 +45,6 @@ def main():
                 mean=[0.00094127, 0.00060294, 0.0005603],
                 std=[0.02102633, 0.01346872, 0.01251619]
             )
-        ]))
 
     train_loader = torch.utils.data.DataLoader(a, batch_size=args.batch_size,
             shuffle=True)
@@ -98,7 +97,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
             print('Epoch: {0} [{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
-                epoch, batch_idx * len(input), len(train_loader),
+                epoch, batch_idx, len(train_loader),
                 batch_time=batch_time, data_time=data_time, loss=losses))
 
 class AverageMeter(object):
