@@ -40,8 +40,6 @@ def main():
     a = human36m.HUMAN36M(args.data, transform=video_transforms.Compose([
             video_transforms.RandomHorizontalFlip(),
             video_transforms.ToTensor(),
-            video_transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                std=[0.1, 0.1, 0.1])
         ]))
 
     train_loader = torch.utils.data.DataLoader(a, batch_size=args.batch_size,
@@ -95,7 +93,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
             print('Epoch: {0} [{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
-                epoch, batch_idx * len(input), len(train_loader),
+                epoch, batch_idx, len(train_loader),
                 batch_time=batch_time, data_time=data_time, loss=losses))
 
 class AverageMeter(object):
