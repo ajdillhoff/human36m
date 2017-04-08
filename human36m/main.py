@@ -41,8 +41,10 @@ def main():
             video_transforms.RandomHorizontalFlip(),
             video_transforms.RandomCrop([16, 128, 128]),
             video_transforms.ToTensor(),
-            video_transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                std=[0.1, 0.1, 0.1])
+            video_transforms.Normalize(
+                mean=[0.00094127, 0.00060294, 0.0005603],
+                std=[0.02102633, 0.01346872, 0.01251619]
+            )
         ]))
 
     train_loader = torch.utils.data.DataLoader(a, batch_size=args.batch_size,
