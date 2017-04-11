@@ -2,12 +2,13 @@ import argparse
 import time
 
 import human36m
+import numpy as np
 import model
 import torch.optim as optim
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import video_transforms
+from utils import data_transforms
 from torchvision import transforms
 from torch.autograd import Variable
 
@@ -37,13 +38,10 @@ def main():
     m.cuda()
 
     print("Loading data...")
-    a = human36m.HUMAN36MPose(args.data, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.ToPILImage(),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomCrop(220),
-            transforms.ToTensor(),
-            transforms.Normalize(
+    a = human36m.HUMAN36MPose(args.data, transform=data_transforms.Compose([
+            data_transforms.RandomCrop(220),
+            data_transforms.ToTensor(),
+            data_transforms.Normalize(
                 mean=[0.00094127, 0.00060294, 0.0005603],
                 std=[0.02102633, 0.01346872, 0.01251619]
             )
@@ -66,6 +64,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    mpjpe = AverageMeter()
 
     # Switch to train mode
     model.train()
@@ -77,15 +76,16 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         input = input.cuda()
         target = target.cuda()
-        input, target = Variable(input), Variable(target)
+        input_var, target_var = Variable(input), Variable(target)
 
         # Compute output
-        output = model(input)
-        loss = criterion(output, target)
+        output = model(input_var)
+        loss = criterion(output, target_var)
 
         # Record loss
-        # TODO: Measure accuracy
+        acc = accuracy(output.data, target)
         losses.update(loss.data[0], input.size(0))
+        mpjpe.update(acc)
 
         # Compute gradient and run optimizer
         optimizer.zero_grad()
@@ -99,9 +99,32 @@ def train(train_loader, model, criterion, optimizer, epoch):
         if batch_idx % args.print_freq == 0:
             print('Epoch: {0} [{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'MPJPE {acc.val:.4f} ({acc.avg:.4f})\t'.format(
                 epoch, batch_idx, len(train_loader),
-                batch_time=batch_time, data_time=data_time, loss=losses))
+                batch_time=batch_time, data_time=data_time, loss=losses,
+                acc=mpjpe))
+
+def accuracy(output, target):
+    """Computes mean per joint position error (MPJPE)
+    TODO: Do not hardcode values
+    """
+    batch_size = target.size(0)
+
+    v = 0
+    for i in range(batch_size):
+        o = output[i].view(32, 2)
+        t = target[i].view(32, 2)
+        d = o - t
+        s = 0
+        for j in range(32):
+            d_norm = d[j].norm()
+            s += d_norm
+        s /= 32
+        v += s
+
+    v /= batch_size
+    return v
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

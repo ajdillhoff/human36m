@@ -78,8 +78,8 @@ class HUMAN36MPose(data.Dataset):
             for fentry in self.train_list:
                 path = os.path.join(root, fentry)
                 f = h5py.File(path, 'r')
-                self.train_data = f['.']['data']
-                self.train_labels = f['.']['poses']
+                self.train_data = f['/train/data']
+                self.train_labels = f['/train/targets']
                 # f.close()
 
             self.img_height = self.train_data.shape[1]
@@ -90,14 +90,12 @@ class HUMAN36MPose(data.Dataset):
         if self.train:
             img, target = self.train_data[index], self.train_labels[index]
 
+        img = Image.fromarray(img.astype(np.uint8))
+
         if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        # h5py loads numpy objects, the labels need to be converted to scalars
-        # target = target.item()
+            target = target.reshape(-1, 2)
+            img, target = self.transform(img, target)
+            target = target.reshape(-1)
 
         return img, target
 
