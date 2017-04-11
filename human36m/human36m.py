@@ -7,8 +7,8 @@ import torch.utils.data as data
 from torchvision import transforms
 import h5py
 
-class HUMAN36M(data.Dataset):
-    train_list = ["human36m.hdf5"]
+class HUMAN36MVideo(data.Dataset):
+    train_list = ["human36m_video.hdf5"]
 
     def __init__(self, root, train=True,
             transform=None, target_transform=None):
@@ -57,6 +57,49 @@ class HUMAN36M(data.Dataset):
         target = target.item()
 
         return seq, target
+
+    def __len__(self):
+        if self.train:
+            return self.train_data.shape[0]
+
+class HUMAN36MPose(data.Dataset):
+    train_list = ["human36m_pose.hdf5"]
+
+    def __init__(self, root, train=True,
+            transform=None, target_transform=None):
+        self.root = root
+        self.transform = transform
+        self.target_transform = target_transform
+        self.train = train
+
+        if self.train:
+            self.train_data = []
+            self.train_labels = []
+            for fentry in self.train_list:
+                path = os.path.join(root, fentry)
+                f = h5py.File(path, 'r')
+                self.train_data = f['.']['data']
+                self.train_labels = f['.']['poses']
+                # f.close()
+
+            self.img_height = self.train_data.shape[1]
+            self.img_width = self.train_data.shape[2]
+            self.channels = self.train_data.shape[3]
+
+    def __getitem__(self, index):
+        if self.train:
+            img, target = self.train_data[index], self.train_labels[index]
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        # h5py loads numpy objects, the labels need to be converted to scalars
+        # target = target.item()
+
+        return img, target
 
     def __len__(self):
         if self.train:
