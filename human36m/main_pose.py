@@ -95,7 +95,7 @@ def main():
         best_acc = max(acc, best_acc)
         save_checkpoint({
             "epoch": epoch + 1,
-            "state_dict": model.state_dict(),
+            "state_dict": m.state_dict(),
             "best_acc": best_acc,
             "optimizer": optimizer.state_dict(),
         }, is_best)
