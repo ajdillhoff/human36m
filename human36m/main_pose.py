@@ -37,18 +37,30 @@ def main():
     m = model.DeepPose()
     m.cuda()
 
-    print("Loading data...")
-    a = human36m.HUMAN36MPose(args.data, transform=data_transforms.Compose([
-            data_transforms.RandomCrop(220),
-            data_transforms.ToTensor(),
-            data_transforms.Normalize(
-                mean=[0.00094127, 0.00060294, 0.0005603],
-                std=[0.02102633, 0.01346872, 0.01251619]
+    normalize = data_transforms.Normalize(
+            mean=[0.00094127, 0.00060294, 0.0005603],
+            std=[0.02102633, 0.01346872, 0.01251619]
             )
+
+    print("Loading data...")
+    a = human36m.HUMAN36MPose(args.data, "/train/",
+            transform=data_transforms.Compose([
+                data_transforms.RandomCrop(220),
+                data_transforms.ToTensor(),
+                normalize
+        ]))
+
+    val = human36m.HUMAN36MPose(args.data, "/val/",
+            transform=data_transforms.Compose([
+                data_transforms.RandomCrop(220),
+                data_transforms.ToTensor(),
+                normalize
         ]))
 
     train_loader = torch.utils.data.DataLoader(a, batch_size=args.batch_size,
             shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size,
+            shuffle=False)
 
     # Define loss function and optimizer
     criterion = nn.MSELoss().cuda()
@@ -58,7 +70,8 @@ def main():
     print("Starting \"training\"")
     for epoch in range(args.start_epoch, args.epochs):
         # train
-        train(train_loader, m, criterion, optimizer, epoch)
+        # train(train_loader, m, criterion, optimizer, epoch)
+        validate(val_loader, m, criterion)
 
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
@@ -99,11 +112,50 @@ def train(train_loader, model, criterion, optimizer, epoch):
         if batch_idx % args.print_freq == 0:
             print('Epoch: {0} [{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'MPJPE {acc.val:.4f} ({acc.avg:.4f})\t'.format(
                 epoch, batch_idx, len(train_loader),
                 batch_time=batch_time, data_time=data_time, loss=losses,
                 acc=mpjpe))
+
+def validate(data_loader, model, criterion):
+    batch_time = AverageMeter()
+    losses = AverageMeter()
+    mpjpe = AverageMeter()
+
+    # Switch to train mode
+    model.eval()
+
+    end = time.time()
+    for batch_idx, (input, target) in enumerate(data_loader):
+        input = input.cuda()
+        target = target.cuda()
+        input_var, target_var = Variable(input), Variable(target)
+
+        # Compute output
+        output = model(input_var)
+        loss = criterion(output, target_var)
+
+        # Record loss
+        acc = accuracy(output.data, target)
+        losses.update(loss.data[0], input.size(0))
+        mpjpe.update(acc)
+
+        # Record elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        if batch_idx % args.print_freq == 0:
+            print('Val: [{0}/{1}]\t'
+                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'MPJPE {acc.val:.4f} ({acc.avg:.4f})\t'.format(
+                batch_idx, len(data_loader),
+                batch_time=batch_time, loss=losses, acc=mpjpe))
+
+    print(" * MPJPE {acc.avg:.3f}".format(acc=mpjpe))
+    return mpjpe.avg
 
 def accuracy(output, target):
     """Computes mean per joint position error (MPJPE)

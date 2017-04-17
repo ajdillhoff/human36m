@@ -10,27 +10,24 @@ import h5py
 class HUMAN36MVideo(data.Dataset):
     train_list = ["human36m_video.hdf5"]
 
-    def __init__(self, root, train=True,
-            transform=None, target_transform=None):
+    def __init__(self, root, transform=None, target_transform=None):
         self.root = root
         self.transform = transform
         self.target_transform = target_transform
-        self.train = train
 
-        if self.train:
-            self.train_data = []
-            self.train_labels = []
-            for fentry in self.train_list:
-                path = os.path.join(root, fentry)
-                f = h5py.File(path, 'r')
-                self.train_data = f['.']['data']
-                self.train_labels = f['.']['labels']
-                # f.close()
+        self.train_data = []
+        self.train_labels = []
+        for fentry in self.train_list:
+            path = os.path.join(root, fentry)
+            f = h5py.File(path, 'r')
+            self.train_data = f['.']['data']
+            self.train_labels = f['.']['labels']
+            # f.close()
 
-            self.num_frames = self.train_data.shape[1]
-            self.img_height = self.train_data.shape[2]
-            self.img_width = self.train_data.shape[3]
-            self.channels = self.train_data.shape[4]
+        self.num_frames = self.train_data.shape[1]
+        self.img_height = self.train_data.shape[2]
+        self.img_width = self.train_data.shape[3]
+        self.channels = self.train_data.shape[4]
 
     def __getitem__(self, index):
         if self.train:
@@ -65,30 +62,28 @@ class HUMAN36MVideo(data.Dataset):
 class HUMAN36MPose(data.Dataset):
     train_list = ["human36m_pose.hdf5"]
 
-    def __init__(self, root, train=True,
-            transform=None, target_transform=None):
-        self.root = root
+    def __init__(self, file_root, data_root, transform=None, 
+            target_transform=None):
+        self.file_root = file_root
+        self.data_root = data_root
         self.transform = transform
         self.target_transform = target_transform
-        self.train = train
 
-        if self.train:
-            self.train_data = []
-            self.train_labels = []
-            for fentry in self.train_list:
-                path = os.path.join(root, fentry)
-                f = h5py.File(path, 'r')
-                self.train_data = f['/train/data']
-                self.train_labels = f['/train/targets']
-                # f.close()
+        self.data = []
+        self.targets = []
+        for fentry in self.train_list:
+            path = os.path.join(file_root, fentry)
+            f = h5py.File(path, 'r')
+            self.data = f[data_root]['data']
+            self.targets = f[data_root]['targets']
+            # f.close()
 
-            self.img_height = self.train_data.shape[1]
-            self.img_width = self.train_data.shape[2]
-            self.channels = self.train_data.shape[3]
+        self.img_height = self.data.shape[1]
+        self.img_width = self.data.shape[2]
+        self.channels = self.data.shape[3]
 
     def __getitem__(self, index):
-        if self.train:
-            img, target = self.train_data[index], self.train_labels[index]
+        img, target = self.data[index], self.targets[index]
 
         img = Image.fromarray(img.astype(np.uint8))
 
@@ -100,5 +95,4 @@ class HUMAN36MPose(data.Dataset):
         return img, target
 
     def __len__(self):
-        if self.train:
-            return self.train_data.shape[0]
+        return self.data.shape[0]
