@@ -1,6 +1,7 @@
 import argparse
 import shutil
 import time
+import os
 
 import human36m
 import numpy as np
@@ -184,7 +185,7 @@ def validate(data_loader, model, criterion):
     print(" * MPJPE {acc.avg:.3f}".format(acc=mpjpe))
     return mpjpe.avg
 
-def save_checkpoint(state, is_best, filename="checkpoint.path.tar"):
+def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, "model_best.pth.tar")
