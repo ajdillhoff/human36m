@@ -43,5 +43,6 @@ class DeepPose(nn.Module):
         x = F.max_pool2d(F.relu(self.conv5(x)), (2, 2))
         x = x.view(-1, 6912)
         x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=True)
         x = F.relu(self.fc2(x))
         return x

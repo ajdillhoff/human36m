@@ -1,4 +1,5 @@
 import argparse
+import shutil
 import time
 
 import human36m
@@ -27,9 +28,13 @@ parser.add_argument("--momentum", default=0.9, type=float, metavar="M",
         help="Momentum (default: 0.9)")
 parser.add_argument("--print-freq", "-p", default=10, type=int, metavar="N",
         help="Print frequency (default: 10)")
+parser.add_argument("--resume", default="", type=str, metavar="PATH",
+        help="Path to latest checkpoint (default: none)")
+
+best_acc = 0
 
 def main():
-    global args
+    global args, best_acc
     args = parser.parse_args()
 
     torch.cuda.manual_seed(1)
@@ -67,11 +72,33 @@ def main():
     optimizer = torch.optim.SGD(m.parameters(), args.learning_rate,
             momentum=args.momentum)
 
+    if args.resume:
+        if os.path.isfile(args.resume):
+            print("=> loading checkpoint '{}'".format(args.resume))
+            checkpoint = torch.load(args.resume)
+            args.start_epoch = checkpoint["epoch"]
+            best_acc = checkpoint["best_acc"]
+            model.load_state_dict(checkpoint["state_dict"])
+            optimizer.load_state_dict(checkpoint["optimizer"])
+            print("=> loaded checkpoint '{}' (epoch {})"
+                .format(args.resume, checkpoint["epoch"]))
+        else:
+            print("=> no checkpoint found at '{}'".format(args.resume))
+
     print("Starting \"training\"")
     for epoch in range(args.start_epoch, args.epochs):
         # train
-        # train(train_loader, m, criterion, optimizer, epoch)
-        validate(val_loader, m, criterion)
+        train(train_loader, m, criterion, optimizer, epoch)
+        acc = validate(val_loader, m, criterion)
+
+        is_best = acc > best_acc
+        best_acc = max(acc, best_acc)
+        save_checkpoint({
+            "epoch": epoch + 1,
+            "state_dict": model.state_dict(),
+            "best_acc": best_acc,
+            "optimizer": optimizer.state_dict(),
+        }, is_best)
 
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
@@ -156,6 +183,11 @@ def validate(data_loader, model, criterion):
 
     print(" * MPJPE {acc.avg:.3f}".format(acc=mpjpe))
     return mpjpe.avg
+
+def save_checkpoint(state, is_best, filename="checkpoint.path.tar"):
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, "model_best.pth.tar")
 
 def accuracy(output, target):
     """Computes mean per joint position error (MPJPE)
