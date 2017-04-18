@@ -46,3 +46,28 @@ class DeepPose(nn.Module):
         x = F.dropout(x, training=True)
         x = F.relu(self.fc2(x))
         return x
+
+class AlexNet(nn.Module):
+    def __init__(self, num_joints):
+        super(AlexNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 96, (11, 11), stride=4, padding=1)
+        self.conv2 = nn.Conv2d(96, 256, (5, 5), padding=2)
+        self.conv3 = nn.Conv2d(256, 384, (3, 3), padding=1)
+        self.conv4 = nn.Conv2d(384, 384, (3, 3), padding=1)
+        self.conv5 = nn.Conv2d(384, 256, (3, 3), padding=1)
+        self.fc1 = nn.Linear(6400, 4096)
+        self.fc2 = nn.Linear(4096, 4096)
+        self.fc3 = nn.Linear(4096, num_joints * 2)
+
+    def forward(self, x):
+        x = F.max_pool2d(F.relu(self.conv1(x)), (3, 3), stride=2)
+        x = F.max_pool2d(F.relu(self.conv2(x)), (3, 3), stride=2)
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        x = F.max_pool2d(F.relu(self.conv5(x)), (3, 3), stride=2)
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=True)
+        x = F.relu(self.fc2(x))
+        x = F.dropout(x, training=True)
+        return self.fc3(x)
