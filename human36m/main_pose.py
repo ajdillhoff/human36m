@@ -17,6 +17,8 @@ from torch.autograd import Variable
 # Arguments
 parser = argparse.ArgumentParser(description="PyTorch Human3.6M Training")
 parser.add_argument("data", metavar="DIR", help="Path to HDF5 file")
+parser.add_argument("-j", "--workers", default=4, type=int, metavar="N",
+        help="Number of data loading workers (default=4)")
 parser.add_argument("--epochs", default=10, type=int, metavar="N",
         help="Number of total epochs to run")
 parser.add_argument("--start-epoch", default=0, type=int, metavar="N",
@@ -74,10 +76,10 @@ def main():
         ]))
 
     train_loader = torch.utils.data.DataLoader(train_dset, batch_size=args.batch_size,
-            shuffle=True, num_workers=4, pin_memory=True)
+            shuffle=True, num_workers=args.workers, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(val_dset, batch_size=args.batch_size,
-            shuffle=False, num_workers=4, pin_memory=True)
+            shuffle=False, num_workers=args.workers, pin_memory=True)
 
     # Define loss function and optimizer
     criterion = nn.MSELoss().cuda()
