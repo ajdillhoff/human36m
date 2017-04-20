@@ -47,7 +47,7 @@ def main():
 
     torch.cuda.manual_seed(1)
 
-    m = model.DeepPose()
+    m = model.AlexNet(32)
     m.cuda()
 
     normalize = data_transforms.Normalize(
@@ -76,7 +76,7 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_dset, batch_size=args.batch_size,
             shuffle=True, num_workers=4, pin_memory=True)
 
-    train_loader = torch.utils.data.DataLoader(val_dset, batch_size=args.batch_size,
+    val_loader = torch.utils.data.DataLoader(val_dset, batch_size=args.batch_size,
             shuffle=False, num_workers=4, pin_memory=True)
 
     # Define loss function and optimizer
