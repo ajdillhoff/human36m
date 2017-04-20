@@ -42,7 +42,7 @@ def main():
     base_path = os.path.normpath(args.data)
     train_path = os.path.join(base_path, "train/images")
     val_path = os.path.join(base_path, "val/images")
-    target_path = os.path.join(base_path, "files")
+    target_path = os.path.join(base_path, "targets")
     print(train_path)
 
     torch.cuda.manual_seed(1)
