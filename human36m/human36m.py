@@ -87,10 +87,13 @@ def make_dataset(img_dir, target_dir):
 
 def load_target(root, file_name, frame_index):
     cdf = pycdf.CDF(os.path.join(root, file_name + ".cdf"))
-    cdf = cdf[0]
-    if frame_index >= cdf.shape[1]:
-        return cdf[0, -1, :]
-    return cdf[0, frame_index, :]
+    targets = cdf[0]
+    if frame_index >= targets.shape[1]:
+        target = targets[0, -1, :]
+    else:
+        target = targets[0, frame_index, :]
+    cdf.close()
+    return target
 
 def default_loader(path):
     return Image.open(path).convert("RGB")
@@ -103,8 +106,6 @@ class HUMAN36MPose(data.Dataset):
         self.target_path = target_path
         self.transform = transform
         self.loader = default_loader
-
-        # initialize length
 
     def __getitem__(self, index):
         target_prefix = "/MyPoseFeatures/D2_Positions"
