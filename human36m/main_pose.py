@@ -38,6 +38,13 @@ def main():
     global args, best_acc
     args = parser.parse_args()
 
+    # Set paths
+    base_path = os.path.normpath(args.data)
+    train_path = os.path.join(base_path, "train/images")
+    val_path = os.path.join(base_path, "val/images")
+    target_path = os.path.join(base_path, "files")
+    print(train_path)
+
     torch.cuda.manual_seed(1)
 
     m = model.DeepPose()
@@ -49,24 +56,28 @@ def main():
             )
 
     print("Loading data...")
-    a = human36m.HUMAN36MPose(args.data, "/train/",
-            transform=data_transforms.Compose([
-                data_transforms.RandomCrop(220),
-                data_transforms.ToTensor(),
-                normalize
+    train_dset = human36m.HUMAN36MPose(train_path, target_path,
+        transform=data_transforms.Compose([
+            data_transforms.CropToTarget(20),
+            data_transforms.Scale((220, 220)),
+            data_transforms.RandomHorizontalFlip(),
+            data_transforms.ToTensor(),
+            normalize
         ]))
 
-    val = human36m.HUMAN36MPose(args.data, "/val/",
-            transform=data_transforms.Compose([
-                data_transforms.RandomCrop(220),
-                data_transforms.ToTensor(),
-                normalize
+    val_dset = human36m.HUMAN36MPose(val_path, target_path,
+        transform=data_transforms.Compose([
+            data_transforms.CropToTarget(20),
+            data_transforms.Scale((220, 220)),
+            data_transforms.ToTensor(),
+            normalize
         ]))
 
-    train_loader = torch.utils.data.DataLoader(a, batch_size=args.batch_size,
-            shuffle=True)
-    val_loader = torch.utils.data.DataLoader(val, batch_size=args.batch_size,
-            shuffle=False)
+    train_loader = torch.utils.data.DataLoader(train_dset, batch_size=args.batch_size,
+            shuffle=True, num_workers=4, pin_memory=True)
+
+    train_loader = torch.utils.data.DataLoader(val_dset, batch_size=args.batch_size,
+            shuffle=False, num_workers=4, pin_memory=True)
 
     # Define loss function and optimizer
     criterion = nn.MSELoss().cuda()

@@ -27,6 +27,80 @@ class Compose(object):
             img, target = t(img, target)
         return img, target
 
+class CropToTarget(object):
+    """Crops the given image using a bounding box defined by the target."""
+
+    def __init__(self, padding=0):
+        self.padding = padding
+
+    def __call__(self, img, target):
+        # Calculate the bounding box as defined by the target
+        max_coords = np.max(target, axis=0)
+        min_coords = np.min(target, axis=0)
+        w, h = img.size
+
+        # add padding
+        if not ((min_coords[0] - self.padding) < 0 or
+            (min_coords[1] - self.padding) < 0 or
+            (max_coords[0] + self.padding) > w or
+            (max_coords[1] + self.padding) > h):
+            min_coords -= self.padding
+            max_coords += self.padding
+
+        if w == max_coords[0] and h == max_coords[1]:
+            return img, target
+
+        # Crop img
+        img = img.crop((min_coords[0], min_coords[1], max_coords[0],
+            max_coords[1]))
+
+        # Crop target
+        target[:, 0] -= min_coords[0]
+        target[:, 1] -= min_coords[1]
+        target[target < 0] = 0
+        target[:, 0] = np.where(target[:, 0] > max_coords[0], 0, target[:, 0])
+        target[:, 1] = np.where(target[:, 1] > max_coords[1], 0, target[:, 1])
+
+        return img, target
+
+class Scale(object):
+    """Scales the given image and target
+    TODO: Need to handle non-square cases properly for targets
+    """
+
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        assert isinstance(size, int) or \
+            (isinstance(size, collections.Iterable) and len(size) == 2)
+
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, img, target):
+        if isinstance(self.size, int):
+            w, h = img.size
+            if (w <= h and w == self.size) or (h <= w and h == self.size):
+                return img, target
+            if w < h:
+                ow = self.size
+                oh = int(self.size * h / w)
+                img = img.resize((ow, oh), self.interpolation)
+                target[:, 0] *= ow
+                target[:, 1] *= oh
+                return img, target
+            else:
+                oh = self.size
+                ow = int(self.size * w / h)
+                target[:, 0] *= ow
+                target[:, 1] *= oh
+                img = img.resize((ow, oh), self.interpolation)
+                return img, target
+        else:
+            w, h = img.size
+            img = img.resize(self.size, self.interpolation)
+            target[:, 0] *= (self.size[0] / w)
+            target[:, 1] *= (self.size[1] / h)
+            return img, target
+
 class RandomCrop(object):
     """Crops the given image and target"""
 
@@ -58,6 +132,20 @@ class RandomCrop(object):
         target[target < 0] = 0
         target[:, 0] = np.where(target[:, 0] > x1 + tw, 0, target[:, 0])
         target[:, 1] = np.where(target[:, 1] > y1 + th, 0, target[:, 1])
+
+        return img, target
+
+class RandomHorizontalFlip(object):
+    """Randomly horizontally flips the given PIL.Image with a probability of
+    0.5. The target is flipped as well.
+    """
+
+    def __call__(self, img, target):
+        if random.random() < 0.5:
+            w, h = img.size
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            target[:, 0] = w - target[:, 0]
+            return img, target
 
         return img, target
 
