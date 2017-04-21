@@ -68,8 +68,10 @@ IMG_EXTENSIONS = [
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
-def make_dataset(img_dir):
+def make_dataset(img_dir, target_dir):
     images = []
+    target_buffer = {}
+    targets = []
 
     # load images
     for subject in os.listdir(img_dir):
@@ -81,9 +83,21 @@ def make_dataset(img_dir):
             for fname in fnames:
                 if is_image_file(fname):
                     path = os.path.join(root, fname)
-                    images.append(path)
+                    video_name = fname.split("_")[0]
+                    index = fname.split("_")[1].split(".")[0]
+                    index = int(index)
+                    target_key = subject + video_name
 
-    return images
+                    if not (target_key in target_buffer):
+                        t = load_targets(target_dir, fname, subject)
+                        target_buffer[target_key] = t
+                    target = target_buffer[target_key]
+
+                    if index < target.shape[0]:
+                        images.append(path)
+                        targets.append(target[index, :])
+
+    return images, targets
 
 def load_targets(target_path, file_name, subject):
     target_prefix = "/MyPoseFeatures/D2_Positions"
@@ -101,9 +115,9 @@ def default_loader(path):
 
 class HUMAN36MPose(data.Dataset):
     def __init__(self, base_path, target_path, transform=None):
-        imgs = make_dataset(base_path)
+        imgs, targets = make_dataset(base_path, target_path)
         self.imgs = imgs
-        self.targets = {}
+        self.targets = targets
         self.base_path = base_path
         self.target_path = target_path
         self.transform = transform
@@ -129,7 +143,7 @@ class HUMAN36MPose(data.Dataset):
     def __getitem__(self, index):
         path = self.imgs[index]
         img = self.loader(path)
-        target = self.target_loader(path, index)
+        target = self.targets[index]
 
         if self.transform is not None:
             target = target.reshape(-1, 2)
