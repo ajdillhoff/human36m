@@ -68,7 +68,7 @@ IMG_EXTENSIONS = [
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
-def make_dataset(img_dir, target_dir):
+def make_dataset(img_dir):
     images = []
 
     # load images
@@ -85,40 +85,51 @@ def make_dataset(img_dir, target_dir):
 
     return images
 
-def load_target(root, file_name, frame_index):
-    cdf = pycdf.CDF(os.path.join(root, file_name + ".cdf"))
+def load_targets(target_path, file_name, subject):
+    target_prefix = "/MyPoseFeatures/D2_Positions"
+    target_path = os.path.join(target_path, subject + target_prefix)
+    file_meta = file_name.split("_")
+    activity = file_meta[0]
+    cdf = pycdf.CDF(os.path.join(target_path, activity + ".cdf"))
     targets = cdf[0]
-    if frame_index >= targets.shape[1]:
-        target = targets[0, -1, :]
-    else:
-        target = targets[0, frame_index, :]
+    targets = targets[0, :, :]
     cdf.close()
-    return target
+    return targets
 
 def default_loader(path):
     return Image.open(path).convert("RGB")
 
 class HUMAN36MPose(data.Dataset):
     def __init__(self, base_path, target_path, transform=None):
-        imgs = make_dataset(base_path, target_path)
+        imgs = make_dataset(base_path)
         self.imgs = imgs
+        self.targets = {}
         self.base_path = base_path
         self.target_path = target_path
         self.transform = transform
         self.loader = default_loader
 
-    def __getitem__(self, index):
-        target_prefix = "/MyPoseFeatures/D2_Positions"
-        path = self.imgs[index]
-        subject = path.split("/")[-2]
+    def target_loader(self, path, index):
         file_name = path.split("/")[-1]
-        file_meta = file_name.split("_")
-        activity = file_meta[0]
-        frame_index = int(file_meta[1].split(".")[0])
-        target_path = os.path.join(self.target_path, subject + target_prefix)
+        subject = path.split("/")[-2]
 
+        if file_name in self.targets:
+            targets = self.targets[file_name]
+        else:
+            targets = load_targets(self.target_path, file_name, subject)
+            self.targets[file_name] = targets
+
+        if index >= targets.shape[0]:
+            target = targets[-1, :]
+        else:
+            target = targets[index, :]
+
+        return target
+
+    def __getitem__(self, index):
+        path = self.imgs[index]
         img = self.loader(path)
-        target = load_target(target_path, activity, frame_index)
+        target = self.target_loader(path, index)
 
         if self.transform is not None:
             target = target.reshape(-1, 2)

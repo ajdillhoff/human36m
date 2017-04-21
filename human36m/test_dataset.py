@@ -14,8 +14,8 @@ def draw_skeleton(img, joints, size, color):
 
     img.show()
 
-img_path = os.path.normpath("/media/adillhoff/Data Set 01/human3.6m/images")
-target_path = os.path.normpath("/media/adillhoff/Data Set 01/human3.6m/train")
+img_path = os.path.normpath("/media/adillhoff/Data Set 01/human3.6m/train/images")
+target_path = os.path.normpath("/media/adillhoff/Data Set 01/human3.6m/targets")
 target_post = "/MyPoseFeatures/D2_Positions"
 
 dset = human36m.HUMAN36MPose(img_path, target_path,
@@ -28,12 +28,17 @@ dset = human36m.HUMAN36MPose(img_path, target_path,
 
 print(len(dset))
 
-for i in range(128):
-    start = timer()
-    index = np.random.randint(len(dset))
-    img, target = dset.__getitem__(index)
-    end = timer()
-    print(end - start)
-# print(target.reshape(32, 2))
+start = timer()
+index = np.random.randint(len(dset))
+img, target = dset.__getitem__(index)
+end = timer()
+print(end - start)
+# for i in range(128):
+#     start = timer()
+#     index = np.random.randint(len(dset))
+#     img, target = dset.__getitem__(index)
+#     end = timer()
+#     print(end - start)
+print(target.reshape(32, 2))
 
 # draw_skeleton(img, target.reshape(32, 2), 5, "#a00000")
