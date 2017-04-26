@@ -90,3 +90,6 @@ ENV/
 
 # tar files
 *.tar
+
+# images
+*.jpg
